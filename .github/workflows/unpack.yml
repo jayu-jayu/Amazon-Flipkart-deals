@@ -1,0 +1,45 @@
+name: Unpack AI Ultra Deal Hunter
+
+on:
+  push:
+    paths:
+      - "AI-Ultra-Deal-Hunter-v1.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          set -e
+
+          test -f "AI-Ultra-Deal-Hunter-v1.zip"
+
+          unzip -o "AI-Ultra-Deal-Hunter-v1.zip" -d .
+
+          rm -f "AI-Ultra-Deal-Hunter-v1.zip"
+
+          echo "Project extracted successfully."
+
+      - name: Commit project files
+        run: |
+          git config user.name "ai-ultra-deal-hunter-bot"
+          git config user.email "ai-ultra-deal-hunter-bot@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Add AI Ultra Deal Hunter project"
+          git push
