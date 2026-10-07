@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI ULTRA DEAL HUNTER — Deal Intelligence Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme:{extend:{
+    colors:{
+      ink:'#04060b', bg:'#070b12', panel:'#0b1220', panel2:'#0e1727', line:'rgba(148,163,184,.10)',
+      mint:'#00e676', lime:'#a3e635', amber:'#fbbf24', red:'#f87171', cy:'#22d3ee',
+      amz:'#ff9900', flip:'#3b82f6', mute:'#8b9bb4', dim:'#5b6b82'
+    },
+    fontFamily:{disp:['"Space Grotesk"','sans-serif'], mono:['"JetBrains Mono"','monospace']}
+  }}
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  *{scrollbar-width:thin;scrollbar-color:#1c2736 transparent}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#1c2736;border-radius:8px}
+  ::-webkit-scrollbar-thumb:hover{background:#2a3a52}
+  html{scroll-behavior:smooth}
+  body{background:#04060b;color:#cbd5e1;font-family:'Space Grotesk',sans-serif;overflow-x:hidden}
+  .bg-grid{background-image:linear-gradient(rgba(148,163,184,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.035) 1px,transparent 1px);background-size:38px 38px;mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,black 30%,transparent 100%)}
+  .orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+  .card{background:linear-gradient(180deg,rgba(17,25,40,.75),rgba(10,15,26,.85));border:1px solid rgba(148,163,184,.10);border-radius:14px;backdrop-filter:blur(8px)}
+  .card-hover{transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+  .card-hover:hover{transform:translateY(-3px);border-color:rgba(0,230,118,.35);box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 20px rgba(0,230,118,.08)}
+  /* status dots */
+  .dot{width:8px;height:8px;border-radius:50%;position:relative;display:inline-block;flex-shrink:0}
+  .dot.ok{background:#00e676;box-shadow:0 0 8px #00e676}
+  .dot.warn{background:#fbbf24;box-shadow:0 0 8px #fbbf24}
+  .dot.bad{background:#f87171;box-shadow:0 0 8px #f87171}
+  .dot.info{background:#22d3ee;box-shadow:0 0 8px #22d3ee}
+  .dot.pulse::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid currentColor;animation:ping 1.6s cubic-bezier(0,0,.2,1) infinite}
+  .dot.ok.pulse{color:#00e676}.dot.info.pulse{color:#22d3ee}.dot.warn.pulse{color:#fbbf24}
+  @keyframes ping{0%{transform:scale(.6);opacity:1}80%,100%{transform:scale(1.8);opacity:0}}
+  /* nav */
+  .nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 13px;border-radius:10px;font-size:13px;font-weight:500;color:#8b9bb4;border:1px solid transparent;transition:all .2s;position:relative;text-align:left}
+  .nav-item:hover{color:#e2e8f0;background:rgba(148,163,184,.06)}
+  .nav-item.active{color:#00e676;background:rgba(0,230,118,.08);border-color:rgba(0,230,118,.22)}
+  .nav-item.active::before{content:'';position:absolute;left:-13px;top:20%;bottom:20%;width:3px;border-radius:3px;background:#00e676;box-shadow:0 0 10px #00e676}
+  .nav-item svg{width:16px;height:16px;flex-shrink:0}
+  .nav-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:#5b6b82;padding:14px 13px 6px;font-weight:700}
+  .nav-badge{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,230,118,.12);color:#00e676;border:1px solid rgba(0,230,118,.25)}
+  .nav-badge.blue{background:rgba(59,130,246,.12);color:#60a5fa;border-color:rgba(59,130,246,.25)}
+  /* ticker */
+  .ticker-track{display:flex;width:max-content;animation:marquee 55s linear infinite}
+  .ticker-track:hover{animation-play-state:paused}
+  .tick-half{display:flex;align-items:center;gap:26px;padding-right:26px}
+  @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .tick-item{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8b9bb4;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .tick-off{color:#00e676;font-style:normal;font-weight:700}
+  .tick-plat{font-size:8px;padding:1px 5px;border-radius:4px;font-weight:800;letter-spacing:.08em}
+  .tick-plat.amazon{background:rgba(255,153,0,.15);color:#ff9900}
+  .tick-plat.flipkart{background:rgba(59,130,246,.15);color:#60a5fa}
+  .tick-sep{color:#334155;font-size:8px}
+  /* deal cards */
+  .deal-card{position:relative;background:linear-gradient(180deg,rgba(17,25,40,.8),rgba(9,13,23,.9));border:1px solid rgba(148,163,184,.10);border-radius:14px;padding:14px;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;overflow:hidden}
+  .deal-card:hover{transform:translateY(-3px);border-color:rgba(148,163,184,.28);box-shadow:0 10px 34px rgba(0,0,0,.55)}
+  .deal-card.is-new{animation:dealIn .55s cubic-bezier(.2,.9,.3,1.2),newGlow 3s ease}
+  .deal-card.is-ultra{border-color:rgba(0,230,118,.4)}
+  .deal-card.is-ultra::after{content:'';position:absolute;inset:0;border-radius:14px;box-shadow:inset 0 0 30px rgba(0,230,118,.06);pointer-events:none}
+  @keyframes dealIn{from{opacity:0;transform:translateY(-16px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes newGlow{0%{box-shadow:0 0 0 rgba(0,230,118,0)}15%{box-shadow:0 0 34px rgba(0,230,118,.45)}100%{box-shadow:0 0 0 rgba(0,230,118,0)}}
+  .ultra-ribbon{position:absolute;top:11px;right:-32px;transform:rotate(38deg);background:linear-gradient(90deg,#00e676,#00b8d9);color:#04060b;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:.14em;padding:3px 36px;box-shadow:0 0 16px rgba(0,230,118,.5)}
+  .thumb{width:76px;height:76px;border-radius:10px;overflow:hidden;position:relative;flex-shrink:0;background:#111a2b;border:1px solid rgba(148,163,184,.12)}
+  .thumb img{width:100%;height:100%;object-fit:cover;filter:saturate(.9)}
+  .thumb-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#12203a,#0a1220);color:#00e676}
+  .thumb-cat{position:absolute;bottom:0;left:0;right:0;font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;background:rgba(4,6,11,.82);color:#8b9bb4;padding:2px 4px;text-align:center}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:.12em;padding:2.5px 7px;border-radius:5px}
+  .badge-amz{background:rgba(255,153,0,.14);color:#ff9900;border:1px solid rgba(255,153,0,.3)}
+  .badge-flip{background:rgba(59,130,246,.14);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+  .badge-new{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:.12em;padding:2.5px 7px;border-radius:5px;background:rgba(0,230,118,.15);color:#00e676;border:1px solid rgba(0,230,118,.4);animation:blinkNew 1.4s ease infinite}
+  @keyframes blinkNew{0%,100%{opacity:1}50%{opacity:.45}}
+  .deal-title{font-size:13px;font-weight:600;color:#e2e8f0;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .price-row{display:flex;align-items:baseline;gap:7px;margin-top:4px;flex-wrap:wrap}
+  .price-now{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:800;color:#00e676;text-shadow:0 0 14px rgba(0,230,118,.35)}
+  .price-was{font-family:'JetBrains Mono',monospace;font-size:11px;color:#5b6b82;text-decoration:line-through}
+  .price-off{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:1.5px 6px;border-radius:5px}
+  .score-ring{position:relative;width:46px;height:46px;flex-shrink:0}
+  .score-ring svg{transform:rotate(0deg)}
+  .score-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .score-txt b{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800}
+  .score-txt span{font-family:'JetBrains Mono',monospace;font-size:6.5px;letter-spacing:.12em;color:#5b6b82;margin-top:2px}
+  .avail{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.05em}
+  .avail i{width:6px;height:6px;border-radius:50%;display:inline-block}
+  .avail.ok{color:#00e676}.avail.ok i{background:#00e676;box-shadow:0 0 6px #00e676}
+  .avail.warn{color:#fbbf24}.avail.warn i{background:#fbbf24;box-shadow:0 0 6px #fbbf24}
+  .avail.bad{color:#f87171}.avail.bad i{background:#f87171;box-shadow:0 0 6px #f87171}
+  .buy-btn{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:7px 12px;border-radius:8px;transition:all .2s;text-decoration:none}
+  .buy-btn svg{width:11px;height:11px}
+  .buy-btn.amazon{background:rgba(255,153,0,.12);color:#ff9900;border:1px solid rgba(255,153,0,.35)}
+  .buy-btn.amazon:hover{background:rgba(255,153,0,.25);box-shadow:0 0 16px rgba(255,153,0,.3)}
+  .buy-btn.flipkart{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.35)}
+  .buy-btn.flipkart:hover{background:rgba(59,130,246,.25);box-shadow:0 0 16px rgba(59,130,246,.3)}
+  .sparkline{display:block;width:100%;height:34px}
+  /* KPI */
+  .kpi{position:relative;padding:16px;overflow:hidden}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,#00e676);opacity:.7}
+  .kpi-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;color:#5b6b82;font-weight:700}
+  .kpi-val{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;color:#f1f5f9;margin-top:7px;line-height:1;text-shadow:0 0 20px var(--kc)}
+  .kpi-sub{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#8b9bb4;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* section head */
+  .sec-head{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.22em;color:#8b9bb4}
+  .sec-head::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(148,163,184,.2),transparent)}
+  /* inputs */
+  .inp{background:#0a1120;border:1px solid rgba(148,163,184,.15);border-radius:9px;padding:9px 12px;font-size:12.5px;color:#e2e8f0;outline:none;transition:border-color .2s;font-family:'Space Grotesk',sans-serif}
+  .inp:focus{border-color:rgba(0,230,118,.5);box-shadow:0 0 0 3px rgba(0,230,118,.08)}
+  select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238b9bb4' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+  .pill{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;padding:7px 14px;border-radius:8px;border:1px solid rgba(148,163,184,.15);color:#8b9bb4;cursor:pointer;transition:all .2s;background:transparent}
+  .pill:hover{color:#e2e8f0;border-color:rgba(148,163,184,.35)}
+  .pill.active{color:#00e676;border-color:rgba(0,230,118,.5);background:rgba(0,230,118,.08)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:4px;background:#1a2436;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#00e676;cursor:pointer;box-shadow:0 0 10px rgba(0,230,118,.6);border:2px solid #04060b}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#00e676;cursor:pointer;border:2px solid #04060b}
+  /* toggle */
+  .tgl{position:relative;width:38px;height:21px;border-radius:20px;background:#1a2436;border:1px solid rgba(148,163,184,.2);cursor:pointer;transition:all .25s;flex-shrink:0}
+  .tgl::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#5b6b82;transition:all .25s}
+  .tgl.on{background:rgba(0,230,118,.2);border-color:rgba(0,230,118,.5)}
+  .tgl.on::after{left:19px;background:#00e676;box-shadow:0 0 8px #00e676}
+  /* skeleton */
+  .skel{background:linear-gradient(90deg,rgba(148,163,184,.05) 25%,rgba(148,163,184,.12) 50%,rgba(148,163,184,.05) 75%);background-size:200% 100%;animation:shimmer 1.3s infinite;border-radius:8px}
+  @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+  /* toast */
+  .toast{transform:translateX(120%);transition:transform .45s cubic-bezier(.2,.9,.3,1.1);background:linear-gradient(180deg,#101a2c,#0b1220);border:1px solid rgba(148,163,184,.15);border-left:3px solid #22d3ee;border-radius:12px;padding:13px 16px;min-width:290px;max-width:360px;box-shadow:0 14px 44px rgba(0,0,0,.6)}
+  .toast.show{transform:translateX(0)}
+  .toast-ultra{border-left-color:#00e676;box-shadow:0 14px 44px rgba(0,0,0,.6),0 0 26px rgba(0,230,118,.18)}
+  .toast-error{border-left-color:#f87171}
+  .toast-info{border-left-color:#22d3ee}
+  /* activity feed */
+  .act-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(148,163,184,.06);font-size:11.5px;animation:actIn .4s ease}
+  @keyframes actIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  .act-item .t{font-family:'JetBrains Mono',monospace;font-size:9px;color:#5b6b82;flex-shrink:0;padding-top:2px;width:52px}
+  /* table */
+  .dtable{width:100%;border-collapse:collapse;font-size:12px}
+  .dtable th{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;color:#5b6b82;text-align:left;padding:10px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-weight:700}
+  .dtable td{padding:11px 12px;border-bottom:1px solid rgba(148,163,184,.06);color:#cbd5e1}
+  .dtable tr:hover td{background:rgba(148,163,184,.03)}
+  /* sweep bar */
+  .sweep{position:absolute;bottom:0;left:0;height:2px;width:180px;background:linear-gradient(90deg,transparent,#00e676,transparent);animation:sweep 4s linear infinite;opacity:.6}
+  @keyframes sweep{from{left:-180px}to{left:100%}}
+  /* boot */
+  #boot{transition:opacity .6s ease}
+  .boot-bar{width:220px;height:3px;background:#1a2436;border-radius:3px;overflow:hidden;margin:18px auto 0}
+  .boot-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#00e676,#22d3ee);box-shadow:0 0 12px #00e676;transition:width .3s ease}
+  .logo-sweep{animation:spin 2.6s linear infinite;transform-origin:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .chip-kw{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:7px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.25);color:#67e8f9}
+  .chip-kw button{color:#5b6b82;font-weight:800;line-height:1}
+  .chip-kw button:hover{color:#f87171}
+  .comp-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(148,163,184,.06)}
+  .stat-chip{background:#0a1120;border:1px solid rgba(148,163,184,.12);border-radius:10px;padding:10px 14px;min-width:0}
+  .stat-chip .l{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.15em;color:#5b6b82;font-weight:700}
+  .stat-chip .v{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:800;color:#f1f5f9;margin-top:3px}
+  .page{animation:pageIn .35s ease}
+  @keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .empty-ill{opacity:.9}
+  @media (max-width:640px){.kpi-val{font-size:21px}}
+</style>
+</head>
+<body class="bg-ink">
+
+<div class="bg-grid fixed inset-0 pointer-events-none z-0"></div>
+<div class="orb" style="width:480px;height:480px;background:rgba(0,230,118,.05);top:-180px;right:-120px"></div>
+<div class="orb" style="width:420px;height:420px;background:rgba(59,130,246,.05);bottom:-160px;left:-100px"></div>
+
+<!-- BOOT OVERLAY -->
+<div id="boot" class="fixed inset-0 z-[100] bg-ink flex items-center justify-center">
+  <div class="text-center px-6">
+    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="1.4" class="mx-auto">
+      <circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="5" opacity=".55"/>
+      <circle cx="12" cy="12" r="1.6" fill="#00e676" stroke="none"/>
+      <g class="logo-sweep"><path d="M12 12L19.5 4.5" stroke-width="1.6"/><path d="M12 12L19.5 4.5" stroke="#00e676" stroke-width="5" opacity=".18"/></g>
+    </svg>
+    <div class="font-bold tracking-[.2em] text-sm mt-4 text-slate-100">AI ULTRA DEAL HUNTER</div>
+    <div class="font-mono text-[9px] tracking-[.3em] text-dim mt-1.5">DEAL INTELLIGENCE TERMINAL</div>
+    <div class="boot-bar"><i id="bootBar"></i></div>
+    <div id="bootText" class="font-mono text-[10px] text-mint mt-4 tracking-widest">INITIALIZING SCANNER CORE...</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="backdrop" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden"></div>
+<aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-[#080d17]/95 backdrop-blur-xl border-r border-line z-40 -translate-x-full lg:translate-x-0 transition-transform duration-300 flex flex-col">
+  <div class="p-5 border-b border-line">
+    <div class="flex items-center gap-3">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="1.4" class="flex-shrink-0">
+        <circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="5" opacity=".55"/>
+        <circle cx="12" cy="12" r="1.6" fill="#00e676" stroke="none"/>
+        <g class="logo-sweep"><path d="M12 12L19.5 4.5" stroke-width="1.6"/><path d="M12 12L19.5 4.5" stroke="#00e676" stroke-width="5" opacity=".18"/></g>
+      </svg>
+      <div class="min-w-0">
+        <div class="font-bold tracking-wide text-[13px] text-slate-100 leading-tight">AI ULTRA<br>DEAL HUNTER</div>
+        <div class="font-mono text-[8px] text-dim tracking-[.25em] mt-1">INTELLIGENCE v2.4.1</div>
+      </div>
+    </div>
+  </div>
+  <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto" id="mainNav">
+    <div class="nav-label">MONITOR</div>
+    <button class="nav-item active" data-nav="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Overview</button>
+    <button class="nav-item" data-nav="livedeals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>Live Deals<span class="nav-badge" id="navDealCount">0</span></button>
+    <div class="nav-label">PLATFORMS</div>
+    <button class="nav-item" data-nav="amazon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17l10-11 4 4"/><path d="M3 21h18"/><path d="M17 10l2-2 2 2"/></svg>Amazon IN<span class="ml-auto dot ok pulse" style="color:#00e676"></span></button>
+    <button class="nav-item" data-nav="flipkart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z"/><path d="M12 22V12M3 7l9 5 9-5"/></svg>Flipkart<span class="ml-auto dot info pulse" style="color:#22d3ee"></span></button>
+    <div class="nav-label">INTELLIGENCE</div>
+    <button class="nav-item" data-nav="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Price History</button>
+    <button class="nav-item" data-nav="telegram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Telegram Alerts<span class="nav-badge blue" id="navAlertCount">0</span></button>
+    <div class="nav-label">SYSTEM</div>
+    <button class="nav-item" data-nav="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>Settings</button>
+    <button class="nav-item" data-nav="system"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>System Status<span class="ml-auto dot ok"></span></button>
+  </nav>
+  <div class="p-4 border-t border-line space-y-2.5">
+    <div class="flex justify-between font-mono text-[9px]"><span class="text-dim tracking-widest">UPTIME</span><span class="text-mint" id="sideUptime">14:22:00</span></div>
+    <div class="flex justify-between font-mono text-[9px]"><span class="text-dim tracking-widest">SCANNED</span><span class="text-slate-300" id="sideScanned">1,247,392</span></div>
+    <div class="pt-2 border-t border-line/60 flex items-center gap-2 font-mono text-[8.5px] tracking-widest text-dim"><span class="dot ok pulse"></span>ALL SYSTEMS NOMINAL</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="lg:pl-64 relative z-10">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-20 bg-[#04060b]/85 backdrop-blur-xl border-b border-line">
+    <div class="flex items-center gap-3 px-4 lg:px-6 py-3">
+      <button id="menuBtn" class="lg:hidden p-2 -ml-2 text-mute hover:text-slate-100 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div class="flex items-center gap-2.5 min-w-0">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="1.5" class="flex-shrink-0 hidden sm:block">
+          <circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="5" opacity=".55"/>
+          <circle cx="12" cy="12" r="1.6" fill="#00e676" stroke="none"/>
+          <g class="logo-sweep"><path d="M12 12L19.5 4.5" stroke-width="1.6"/><path d="M12 12L19.5 4.5" stroke="#00e676" stroke-width="5" opacity=".18"/></g>
+        </svg>
+        <div class="min-w-0">
+          <div class="font-bold text-[13px] sm:text-sm tracking-wide text-slate-100 truncate">AI ULTRA DEAL HUNTER</div>
+          <div class="font-mono text-[8px] text-dim tracking-[.25em] hidden sm:block">REAL-TIME DEAL INTELLIGENCE</div>
+        </div>
+      </div>
+      <div class="flex-1"></div>
+      <div class="hidden md:flex items-center gap-2 font-mono text-[9px] font-bold tracking-widest text-mint bg-mint/10 border border-mint/30 rounded-lg px-3 py-2">
+        <span class="dot ok pulse"></span>SCANNER ONLINE
+      </div>
+      <div class="hidden lg:flex items-center gap-3 font-mono text-[9.5px] text-mute">
+        <span class="flex items-center gap-1.5"><span class="dot warn pulse" style="color:#ff9900"></span><b class="text-amz">AMZ</b><span id="scanAmz" class="text-slate-300">0</span></span>
+        <span class="flex items-center gap-1.5"><span class="dot info pulse" style="color:#22d3ee"></span><b class="text-cy">FLIP</b><span id="scanFlip" class="text-slate-300">0</span></span>
+        <span class="flex items-center gap-1.5"><span class="dot ok"></span><b class="text-slate-300">TG</b> CONNECTED</span>
+      </div>
+      <div class="hidden sm:block font-mono text-[11px] text-slate-300 tabular-nums border border-line rounded-lg px-3 py-2 bg-panel/50" id="clock">--:--:--</div>
+      <button id="bellBtn" class="relative p-2 text-mute hover:text-slate-100 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span id="bellBadge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-mint text-ink font-mono text-[9px] font-800 font-bold flex items-center justify-center">0</span>
+      </button>
+    </div>
+    <div class="sweep"></div>
+  </header>
+
+  <!-- TICKER -->
+  <div class="border-b border-line bg-panel/40 flex items-stretch">
+    <div class="px-3 py-2 font-mono text-[9px] font-800 font-bold tracking-[.2em] text-mint bg-mint/10 border-r border-line flex items-center gap-2 flex-shrink-0">
+      <span class="dot ok pulse"></span>LIVE FEED
+    </div>
+    <div class="overflow-hidden flex-1 py-2"><div class="ticker-track" id="tickerTrack"></div></div>
+  </div>
+
+  <main class="p-4 lg:p-6 space-y-6 max-w-[1600px] mx-auto">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section id="page-overview" class="page space-y-5">
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3" id="kpiRow"></div>
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="xl:col-span-2 space-y-4 min-w-0">
+          <div class="sec-head">NEWLY DETECTED DEALS
+            <span class="flex items-center gap-1.5 text-mint normal-case tracking-widest"><span class="dot ok pulse"></span>LIVE</span>
+            <span id="feedCount" class="text-dim normal-case tracking-normal"></span>
+          </div>
+          <div id="overviewFeed" class="grid sm:grid-cols-2 gap-4"></div>
+        </div>
+        <div class="space-y-5 min-w-0">
+          <div class="card p-4">
+            <div class="sec-head mb-2">LIVE ACTIVITY</div>
+            <div id="activityLog" class="max-h-[290px] overflow-y-auto pr-1"></div>
+          </div>
+          <div class="card p-4">
+            <div class="sec-head mb-3">PLATFORM SPLIT</div>
+            <div class="h-[170px]"><canvas id="chartSplit"></canvas></div>
+          </div>
+          <div class="card p-4">
+            <div class="sec-head mb-3">DEALS DETECTED / HOUR</div>
+            <div class="h-[150px]"><canvas id="chartHour"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LIVE DEALS ============ -->
+    <section id="page-livedeals" class="page hidden space-y-4">
+      <div class="sec-head">LIVE DEAL MONITOR<span class="text-dim normal-case tracking-normal" id="dealCount"></span></div>
+      <div class="card p-4 space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex gap-2" id="fPlatform">
+            <button class="pill active" data-p="all">ALL</button>
+            <button class="pill" data-p="amazon">AMAZON</button>
+            <button class="pill" data-p="flipkart">FLIPKART</button>
+          </div>
+          <div class="flex-1"></div>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-dim" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input id="fSearch" class="inp pl-8 w-full sm:w-52" placeholder="Search deals, brands...">
+          </div>
+          <select id="fCat" class="inp"><option value="all">All Categories</option></select>
+          <select id="fSort" class="inp">
+            <option value="newest">Sort: Newest</option>
+            <option value="discount">Sort: Discount</option>
+            <option value="score">Sort: Deal Score</option>
+            <option value="priceAsc">Sort: Price ↑</option>
+            <option value="priceDesc">Sort: Price ↓</option>
+          </select>
+          <button id="fReset" class="pill">RESET</button>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-[9px] tracking-widest text-dim flex-shrink-0">MIN SCORE <b id="fScoreVal" class="text-mint">0</b></span>
+          <input type="range" id="fScore" min="0" max="100" value="0" step="5">
+        </div>
+      </div>
+      <div id="dealGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      <div id="dealEmpty" class="hidden card p-12 text-center">
+        <svg class="empty-ill mx-auto" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.2">
+          <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" opacity=".5"/>
+          <circle cx="12" cy="12" r="1.4" fill="#334155" stroke="none"/><path d="M12 12L18 6"/>
+        </svg>
+        <div class="font-semibold text-slate-300 mt-4">No deals match your filters</div>
+        <div class="font-mono text-[10px] text-dim mt-1.5 tracking-wider">ADJUST THRESHOLDS OR RESET TO RESCAN FEED</div>
+        <button id="emptyReset" class="pill active mt-5 mx-auto">RESET FILTERS</button>
+      </div>
+    </section>
+
+    <!-- ============ AMAZON ============ -->
+    <section id="page-amazon" class="page hidden space-y-5">
+      <div class="card p-5 relative overflow-hidden" style="border-color:rgba(255,153,0,.3)">
+        <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full" style="background:radial-gradient(circle,rgba(255,153,0,.14),transparent 70%)"></div>
+        <div class="flex flex-wrap items-center gap-4 relative">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl" style="background:rgba(255,153,0,.15);color:#ff9900;border:1px solid rgba(255,153,0,.35)">a</div>
+          <div>
+            <div class="font-bold text-lg text-slate-100">Amazon IN <span class="font-mono text-[10px] text-amz tracking-widest ml-1">● LIVE</span></div>
+            <div class="font-mono text-[10px] text-dim tracking-wider mt-0.5">PRODUCT API CONNECTED · SWEEP EVERY 45s · REGION: IN</div>
+          </div>
+          <div class="flex-1"></div>
+          <div class="flex items-center gap-2 font-mono text-[9px] font-bold tracking-widest text-amz bg-amz/10 border border-amz/30 rounded-lg px-3 py-2"><span class="dot warn pulse"></span>SCANNING</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3" id="amzStats"></div>
+      <div class="sec-head">AMAZON LIVE DEALS</div>
+      <div id="amazonGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ============ FLIPKART ============ -->
+    <section id="page-flipkart" class="page hidden space-y-5">
+      <div class="card p-5 relative overflow-hidden" style="border-color:rgba(59,130,246,.3)">
+        <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full" style="background:radial-gradient(circle,rgba(59,130,246,.14),transparent 70%)"></div>
+        <div class="flex flex-wrap items-center gap-4 relative">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm" style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.35)">f</div>
+          <div>
+            <div class="font-bold text-lg text-slate-100">Flipkart <span class="font-mono text-[10px] text-cy tracking-widest ml-1">● LIVE</span></div>
+            <div class="font-mono text-[10px] text-dim tracking-wider mt-0.5">PRODUCT API CONNECTED · SWEEP EVERY 60s · REGION: IN</div>
+          </div>
+          <div class="flex-1"></div>
+          <div class="flex items-center gap-2 font-mono text-[9px] font-bold tracking-widest text-amber bg-amber/10 border border-amber/30 rounded-lg px-3 py-2"><span class="dot warn pulse"></span>ELEVATED LATENCY</div>
+        </div>
+      </div>
+      <div class="card p-3.5 flex items-center gap-3" style="border-color:rgba(251,191,36,.3)">
+        <span class="dot warn"></span>
+        <div class="font-mono text-[10px] text-amber tracking-wide">Flipkart API latency spike detected (avg 640ms). Deal feed remains live — updates may arrive slower than usual. Failover proxy engaged.</div>
+      </div>
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3" id="flipStats"></div>
+      <div class="sec-head">FLIPKART LIVE DEALS</div>
+      <div id="flipkartGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ============ PRICE HISTORY ============ -->
+    <section id="page-history" class="page hidden space-y-5">
+      <div class="card p-4 lg:p-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="sec-head flex-1 min-w-[180px]">PRICE INTELLIGENCE</div>
+          <select id="histProduct" class="inp max-w-xs flex-1 sm:flex-none"></select>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="stat-chip"><div class="l">CURRENT PRICE</div><div class="v text-mint" id="hCur">—</div></div>
+          <div class="stat-chip"><div class="l">ALL-TIME LOW</div><div class="v text-cy" id="hAtl">—</div></div>
+          <div class="stat-chip"><div class="l">30D AVERAGE</div><div class="v" id="hAvg">—</div></div>
+          <div class="stat-chip"><div class="l">YOU SAVE</div><div class="v text-amber" id="hSave">—</div></div>
+        </div>
+        <div class="h-[300px] sm:h-[340px]"><canvas id="histChart"></canvas></div>
+      </div>
+      <div class="card p-4 lg:p-5">
+        <div class="sec-head mb-2">TOP PRICE DROPS — LAST 24H</div>
+        <div class="overflow-x-auto">
+          <table class="dtable">
+            <thead><tr><th>PRODUCT</th><th>PLATFORM</th><th>WAS</th><th>NOW</th><th>DROP</th><th>SCORE</th><th>30D TREND</th></tr></thead>
+            <tbody id="topDrops"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TELEGRAM ============ -->
+    <section id="page-telegram" class="page hidden">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="xl:col-span-2 space-y-5 min-w-0">
+          <div class="card p-5">
+            <div class="sec-head mb-4">BOT CONNECTION</div>
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.35)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              </div>
+              <div class="flex-1 min-w-[160px]">
+                <div class="flex items-center gap-2 font-semibold text-slate-100"><span id="tgDot" class="dot ok pulse"></span><span id="tgStatus">CONNECTED</span></div>
+                <div class="font-mono text-[10px] text-dim mt-1">@AIDealHunterBot · Chat: <span class="text-slate-300" id="tgChat">UltraDealAlerts</span> · <span id="tgChatId">-1001234567890</span></div>
+                <div class="font-mono text-[10px] text-dim mt-0.5">Last alert: <span class="text-mint" id="tgLast">2m ago</span> · Delivery rate: <span class="text-mint">99.2%</span></div>
+              </div>
+              <div class="flex gap-2">
+                <button id="tgTest" class="buy-btn flipkart">SEND TEST ALERT</button>
+                <button id="tgDisconnect" class="pill">DISCONNECT</button>
+              </div>
+            </div>
+          </div>
+          <div class="card p-5">
+            <div class="sec-head mb-2">ALERT LOG <span class="text-dim normal-case tracking-normal" id="alertCountLbl"></span></div>
+            <div id="alertLog" class="max-h-[380px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+        <div class="space-y-5 min-w-0">
+          <div class="card p-5 space-y-5">
+            <div class="sec-head">ALERT THRESHOLDS</div>
+            <div>
+              <div class="flex justify-between font-mono text-[10px] mb-2"><span class="text-dim tracking-widest">MIN DEAL SCORE</span><span class="text-mint font-bold" id="tgScoreVal">75</span></div>
+              <input type="range" id="tgScore" min="40" max="100" value="75">
+              <div class="flex justify-between font-mono text-[8px] text-dim mt-1"><span>40</span><span>100</span></div>
+            </div>
+            <div>
+              <div class="font-mono text-[10px] text-dim tracking-widest mb-2">ALERT IF PRICE BELOW (₹)</div>
+              <input type="number" id="tgPrice" class="inp w-full font-mono" value="2999">
+            </div>
+            <div class="flex items-center justify-between"><span class="text-[12.5px] text-slate-300">Ultra deals only <span class="text-dim font-mono text-[9px]">(score ≥ 90)</span></span><div class="tgl on" id="tgUltra"></div></div>
+            <div class="flex items-center justify-between"><span class="text-[12.5px] text-slate-300">In-stock items only</span><div class="tgl on" id="tgStock"></div></div>
+            <div class="flex items-center justify-between"><span class="text-[12.5px] text-slate-300">Drops &gt; 25% in 24h</span><div class="tgl" id="tgDrops"></div></div>
+            <div class="flex items-center justify-between"><span class="text-[12.5px] text-slate-300">Max alerts / hour</span><span class="font-mono text-[11px] text-mint" id="tgRate">5</span></div>
+            <input type="range" id="tgRateRange" min="1" max="20" value="5">
+          </div>
+          <div class="card p-5 space-y-4">
+            <div class="sec-head">KEYWORD WATCHLIST</div>
+            <div class="flex flex-wrap gap-2" id="tgKeywords"></div>
+            <div class="flex gap-2">
+              <input id="tgKeywordInput" class="inp flex-1 font-mono text-[11px]" placeholder="add keyword...">
+              <button id="tgAddKw" class="pill active">ADD</button>
+            </div>
+            <div class="font-mono text-[9px] text-dim leading-relaxed">Alerts trigger when a tracked deal title matches any watchlist keyword, subject to active thresholds.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section id="page-settings" class="page hidden">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 max-w-5xl">
+        <div class="card p-5 space-y-5">
+          <div class="sec-head">SCANNER ENGINE</div>
+          <div>
+            <div class="flex justify-between font-mono text-[10px] mb-2"><span class="text-dim tracking-widest">SWEEP INTERVAL</span><span class="text-mint font-bold" id="setIntervalVal">45s</span></div>
+            <input type="range" id="setInterval" min="15" max="120" value="45" step="5">
+          </div>
+          <div>
+            <div class="flex justify-between font-mono text-[10px] mb-2"><span class="text-dim tracking-widest">MAX RESULTS PER SWEEP</span><span class="text-mint font-bold" id="setMaxVal">500</span></div>
+            <input type="range" id="setMax" min="100" max="2000" value="500" step="100">
+          </div>
+          <div>
+            <div class="font-mono text-[10px] text-dim tracking-widest mb-2.5">CATEGORY FILTERS</div>
+            <div class="flex flex-wrap gap-2" id="setCats"></div>
+          </div>
+        </div>
+        <div class="card p-5 space-y-5">
+          <div class="sec-head">NOTIFICATIONS</div>
+          <div class="flex items-center justify-between"><div><div class="text-[12.5px] text-slate-300">Ultra deal push alerts</div><div class="font-mono text-[9px] text-dim mt-0.5">Instant Telegram ping for score ≥ 90</div></div><div class="tgl on" id="setUltra"></div></div>
+          <div class="flex items-center justify-between"><div><div class="text-[12.5px] text-slate-300">Audio chime on new ultra deal</div><div class="font-mono text-[9px] text-dim mt-0.5">Terminal beep via WebAudio</div></div><div class="tgl" id="setSound"></div></div>
+          <div class="flex items-center justify-between"><div><div class="text-[12.5px] text-slate-300">Auto-refresh feed</div><div class="font-mono text-[9px] text-dim mt-0.5">Re-render deal cards every 30s</div></div><div class="tgl on" id="setRefresh"></div></div>
+          <div class="flex items-center justify-between"><div><div class="text-[12.5px] text-slate-300">Compact card mode</div><div class="font-mono text-[9px] text-dim mt-0.5">Denser layout for power monitoring</div></div><div class="tgl" id="setCompact"></div></div>
+        </div>
+        <div class="card p-5 space-y-4 xl:col-span-2">
+          <div class="sec-head">SYSTEM ACTIONS</div>
+          <div class="flex flex-wrap gap-3">
+            <button id="setSave" class="buy-btn amazon" style="background:rgba(0,230,118,.12);color:#00e676;border-color:rgba(0,230,118,.4)">SAVE CONFIGURATION</button>
+            <button id="setReset" class="pill" style="border-color:rgba(248,113,113,.4);color:#f87171">RESET DEMO DATA</button>
+          </div>
+          <div class="font-mono text-[9px] text-dim">Configuration is stored locally in this session. Reset restores the original sample dataset and re-seeds the scanner.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SYSTEM STATUS ============ -->
+    <section id="page-system" class="page hidden space-y-5">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div class="card kpi" style="--kc:#00e676"><div class="kpi-label">SYSTEM UPTIME</div><div class="kpi-val" id="sysUptime">14:22:00</div><div class="kpi-sub text-mint">stable · no restarts</div></div>
+        <div class="card kpi" style="--kc:#22d3ee"><div class="kpi-label">PRODUCTS SCANNED</div><div class="kpi-val" id="sysScanned">1,247,392</div><div class="kpi-sub">+<span id="sysScannedRate">84</span>/s</div></div>
+        <div class="card kpi" style="--kc:#fbbf24"><div class="kpi-label">API REQUESTS / MIN</div><div class="kpi-val" id="sysRpm">246</div><div class="kpi-sub">across 2 platforms</div></div>
+        <div class="card kpi" style="--kc:#3b82f6"><div class="kpi-label">ALERTS DISPATCHED</div><div class="kpi-val" id="sysAlerts">0</div><div class="kpi-sub">via Telegram · 99.2% delivery</div></div>
+      </div>
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div class="card p-5">
+          <div class="sec-head mb-2">COMPONENT HEALTH</div>
+          <div id="sysComponents"></div>
+        </div>
+        <div class="card p-5">
+          <div class="sec-head mb-2">SYSTEM EVENT LOG</div>
+          <div id="sysLog" class="max-h-[330px] overflow-y-auto pr-1 font-mono text-[10.5px] space-y-1.5"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts" class="fixed bottom-4 right-4 z-[90] space-y-3"></div>
+
+<script>
+/* ================= UTILS ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const fmt = n => Math.round(n).toLocaleString('en-IN');
+const INR = n => '₹' + fmt(n);
+const rand = (a,b) => a + Math.random()*(b-a);
+const randi = (a,b) => Math.floor(rand(a,b+1));
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const trunc = (s,n) => s.length>n ? s.slice(0,n-1)+'…' : s;
+function timeAgo(ts){ const s=(Date.now()-ts)/1000; if(s<60) return Math.max(1,Math.floor(s))+'s ago'; const m=s/60; if(m<60) return Math.floor(m)+'m ago'; const h=m/60; if(h<24) return Math.floor(h)+'h ago'; return Math.floor(h/24)+'d ago'; }
+function clockNow(){ return new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}); }
+
+const I = {
+  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+  check:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  cube:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z"/><path d="M12 22V12M3 7l9 5 9-5"/></svg>',
+  zap:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>',
+  tag:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4L11 3H4v7l9.6 10.4a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8z"/><circle cx="8" cy="7" r="1.2"/></svg>',
+  drop:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17l-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg>',
+  radar:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" opacity=".6"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 12L18.5 5.5"/></svg>',
+  plane:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>'
+};
+
+/* ================= DATA ================= */
+const POOL = [
+  {t:'boAt Airdopes 141 TWS Earbuds', b:'boAt', c:'Audio', p:'amazon', seed:'boat141', mrp:2999, base:1099},
+  {t:'Sony WH-1000XM5 Wireless Headphones', b:'Sony', c:'Audio', p:'amazon', seed:'sony-xm5', mrp:34990, base:22999},
+  {t:'Noise ColorFit Pro 4 Smartwatch', b:'Noise', c:'Wearables', p:'flipkart', seed:'noise-cfp4', mrp:4999, base:1499},
+  {t:'OnePlus Nord CE 4 Lite 5G', b:'OnePlus', c:'Electronics', p:'flipkart', seed:'oneplus-nord', mrp:24999, base:17999},
+  {t:'Logitech G502 X Lightspeed Gaming Mouse', b:'Logitech', c:'Gaming', p:'amazon', seed:'logi-g502', mrp:6999, base:3499},
+  {t:'JBL Flip 6 Portable Bluetooth Speaker', b:'JBL', c:'Audio', p:'flipkart', seed:'jbl-flip6', mrp:12999, base:7499},
+  {t:'Apple AirPods Pro 2nd Gen', b:'Apple', c:'Audio', p:'amazon', seed:'airpods-pro2', mrp:24999, base:16999},
+  {t:'Samsung Galaxy M34 5G (128GB)', b:'Samsung', c:'Electronics', p:'flipkart', seed:'sam-m34', mrp:24999, base:13999},
+  {t:'HP 15s Ryzen 5 16GB SSD Laptop', b:'HP', c:'Computing', p:'amazon', seed:'hp15s', mrp:57990, base:41990},
+  {t:'Philips Air Fryer HD9200 4.1L', b:'Philips', c:'Home & Kitchen', p:'flipkart', seed:'philips-af', mrp:7995, base:4299},
+  {t:'Xiaomi Mi Smart Band 8', b:'Xiaomi', c:'Wearables', p:'amazon', seed:'mi-band8', mrp:3999, base:1799},
+  {t:"Levi's 511 Slim Fit Stretch Jeans", b:"Levi's", c:'Fashion', p:'flipkart', seed:'levis511', mrp:3999, base:1599},
+  {t:'Canon EOS M50 Mark II Mirrorless', b:'Canon', c:'Electronics', p:'amazon', seed:'canon-m50', mrp:64999, base:47999},
+  {t:'Dyson V8 Absolute Cordless Vacuum', b:'Dyson', c:'Appliances', p:'flipkart', seed:'dyson-v8', mrp:44990, base:29999},
+  {t:'ASUS ROG Strix G15 Gaming Laptop', b:'ASUS', c:'Gaming', p:'amazon', seed:'rog-g15', mrp:99990, base:74999},
+  {t:'Samsung 32" Crystal 4K UHD TV', b:'Samsung', c:'Appliances', p:'flipkart', seed:'sam-tv32', mrp:32999, base:21999},
+  {t:'Adidas Ultraboost Light Running Shoes', b:'Adidas', c:'Fashion', p:'amazon', seed:'adidas-ub', mrp:12999, base:6999},
+  {t:'Lenovo ThinkPad E14 Gen 5', b:'Lenovo', c:'Computing', p:'flipkart', seed:'thinkpad-e14', mrp:68990, base:49999},
+  {t:'Puma Phase II Sports Backpack 27L', b:'Puma', c:'Fashion', p:'amazon', seed:'puma-bp', mrp:2999, base:1199},
+  {t:'Instant Pot Duo 6L Multi-Cooker', b:'Instant Pot', c:'Home & Kitchen', p:'flipkart', seed:'instant-pot', mrp:9999, base:5499},
+  {t:'Samsung Galaxy Buds2 Pro', b:'Samsung', c:'Audio', p:'flipkart', seed:'buds2pro', mrp:19999, base:9999},
+  {t:'Xiaomi 11 Lite 5G NE (128GB)', b:'Xiaomi', c:'Electronics', p:'amazon', seed:'mi11lite', mrp:29999, base:15999},
+  {t:'IFB 8kg Front Load Washing Machine', b:'IFB', c:'Appliances', p:'amazon', seed:'ifb-wm', mrp:42990, base:31499},
+  {t:'Corsair K55 RGB Pro Gaming Keyboard', b:'Corsair', c:'Gaming', p:'flipkart', seed:'corsair-k55', mrp:8999, base:4299},
+  {t:'Fastrack Reflex Play+ AMOLED Watch', b:'Fastrack', c:'Wearables', p:'amazon', seed:'fastrack-rp', mrp:5999, base:2499},
+  {t:'AmazonBasics USB-C to USB-C Cable 1m', b:'AmazonBasics', c:'Accessories', p:'amazon', seed:'usbc-cable', mrp:299, base:89},
+  {t:'Flipkart SmartBuy Frosted Phone Cover', b:'SmartBuy', c:'Accessories', p:'flipkart', seed:'phone-cover', mrp:149, base:45},
+  {t:'boAt 3.5mm AUX Cable 1.5m', b:'boAt', c:'Accessories', p:'amazon', seed:'aux-cable', mrp:199, base:69},
+  {t:'H&D HDMI 2.1 Cable 2m 4K@60Hz', b:'H&D', c:'Accessories', p:'flipkart', seed:'hdmi-cable', mrp:349, base:79},
+  {t:'Wildcraft Travel Organizer Kit', b:'Wildcraft', c:'Fashion', p:'amazon', seed:'wildcraft-org', mrp:499, base:95},
+  {t:'Classmate Notebook Pack of 3', b:'Classmate', c:'Stationery', p:'flipkart', seed:'notebooks', mrp:240, base:88}
+];
+
+const state = {
+  route:'overview', deals:[], alerts:[], activity:[],
+  filters:{platform:'all', cat:'all', minScore:0, sort:'newest', q:''},
+  stats:{ detectedToday:randi(180,260), lastHour:randi(8,20), alertsSent:randi(34,58), scanned:1247392, uptime:14*3600+22*60+randi(0,59), bell:0 },
+  telegram:{ connected:true, scoreTh:75, priceTh:2999, ultraOnly:true, inStockOnly:true, bigDrops:false, rate:5, keywords:['ps5','iphone','airpods','rtx 4070','sony','go pro'] },
+  charts:{}, visited:{}, hourData:Array.from({length:12},()=>randi(6,26)),
+  components:[
+    {name:'Deal Scanner Engine', st:'operational', lat:()=>randi(8,24)+'ms'},
+    {name:'Amazon Product API', st:'operational', lat:()=>randi(120,320)+'ms'},
+    {name:'Flipkart Product API', st:'degraded', lat:()=>randi(420,880)+'ms'},
+    {name:'Price History Database', st:'operational', lat:()=>randi(4,12)+'ms'},
+    {name:'Telegram Bot API', st:'operational', lat:()=>randi(90,210)+'ms'},
+    {name:'Alert Dispatcher', st:'operational', lat:()=>randi(5,15)+'ms'}
+  ],
+  sysLog:[]
+};
+
+/* ================= GENERATORS ================= */
+let dealSeq = 0;
+function genHistory(mrp, cur, prev){
+  const pts=[]; let v = mrp*rand(0.62,0.78);
+  for(let i=0;i<30;i++){ v += rand(-0.035,0.04)*mrp*0.12; v = clamp(v, mrp*0.38, mrp*1.06); pts.push(Math.round(v)); }
+  const n=pts.length;
+  pts[n-3]=prev; pts[n-2]=Math.round(prev*rand(0.95,1.0)); pts[n-1]=cur;
+  return pts;
+}
+function makeDeal(item, opts={}){
+  const cur = Math.max(39, Math.round(item.base * rand(0.84, 1.08)));
+  const prev = Math.round(cur * rand(1.14, 1.5));
+  const disc = Math.round((1 - cur/item.mrp)*100);
+  const belowBase = Math.max(0, Math.round((1 - cur/item.base)*100));
+  let score = Math.round(clamp(disc*0.85 + belowBase*1.5 + rand(-5,9), 24, 99));
+  if(opts.ultra) score = randi(90,98);
+  const roll = Math.random();
+  const avail = opts.ultra || roll<0.72 ? 'In Stock' : roll<0.92 ? 'Low Stock' : 'Out of Stock';
+  return {
+    id:'D'+(++dealSeq)+Date.now().toString(36),
+    title:item.t, brand:item.b, cat:item.c, platform:item.p, seed:item.seed+dealSeq,
+    mrp:item.mrp, base:item.base, currentPrice:cur, prevPrice:prev, discount:disc,
+    dealScore:score, availability:avail, detectedAt:opts.ts||Date.now(),
+    history:genHistory(item.mrp,cur,prev), isNew:!!opts.isNew,
+    asin:'B0'+Math.random().toString(36).slice(2,9).toUpperCase()
+  };
+}
+function seedDeals(){
+  state.deals = POOL.map((item,i)=>{
+    const ultra = [1,6,22,14].includes(i);
+    return makeDeal(item,{ultra, ts:Date.now()-randi(2,480)*60000});
+  }).sort((a,b)=>b.detectedAt-a.detectedAt);
+  state.stats.detectedToday += state.deals.length;
+}
+
+/* ================= SHARED RENDER ================= */
+function scoreMeta(s){
+  if(s>=90) return {label:'ULTRA', color:'#00e676'};
+  if(s>=75) return {label:'HOT', color:'#a3e635'};
+  if(s>=60) return {label:'GOOD', color:'#fbbf24'};
+  return {label:'FAIR', color:'#8b9bb4'};
+}
+function scoreRing(s){
+  const m=scoreMeta(s), r=19, c=2*Math.PI*r, off=c-(s/100)*c;
+  return `<div class="score-ring"><svg width="46" height="46" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="${r}" fill="none" stroke="rgba(148,163,184,.14)" stroke-width="4"/>
+    <circle cx="24" cy="24" r="${r}" fill="none" stroke="${m.color}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 24 24)" style="filter:drop-shadow(0 0 4px ${m.color})"/>
+  </svg><div class="score-txt"><b style="color:${m.color}">${s}</b><span>${m.label}</span></div></div>`;
+}
+function sparkline(data){
+  const w=140,h=34,min=Math.min(...data),max=Math.max(...data),rng=(max-min)||1,step=w/(data.length-1);
+  const pts=data.map((v,i)=>`${(i*step).toFixed(1)},${(h-4-((v-min)/rng)*(h-9)).toFixed(1)}`).join(' ');
+  const up=data[data.length-1]<data[0], col=up?'#00e676':'#f87171';
+  const ly=(h-4-((data[data.length-1]-min)/rng)*(h-9)).toFixed(1);
+  return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" opacity=".85"/>
+    <circle cx="${w}" cy="${ly}" r="2.4" fill="${col}" style="filter:drop-shadow(0 0 3px ${col})"/></svg>`;
+}
+function platBadge(p){ return p==='amazon' ? '<span class="badge badge-amz">AMAZON</span>' : '<span class="badge badge-flip">FLIPKART</span>'; }
+function buyUrl(d){ return d.platform==='amazon' ? `https://www.amazon.in/dp/${d.asin}` : `https://www.flipkart.com/${d.title.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-p/${d.asin.toLowerCase()}.pid.html`; }
+function dealCard(d){
+  const ultra=d.dealScore>=90;
+  const ac=d.availability==='In Stock'?'ok':d.availability==='Low Stock'?'warn':'bad';
+  const img=`https://picsum.photos/seed/${d.seed}/240/240`;
+  return `<article class="deal-card ${d.isNew?'is-new':''} ${ultra?'is-ultra':''}">
+    ${ultra?'<div class="ultra-ribbon">ULTRA DEAL</div>':''}
+    <div class="flex gap-3">
+      <div class="thumb">
+        <img src="${img}" alt="" loading="lazy" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+        <div class="thumb-fallback hidden">${I.cube}</div>
+        <span class="thumb-cat">${d.cat}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 flex-wrap">${platBadge(d.platform)}${d.isNew?'<span class="badge-new">NEW</span>':''}<span class="ml-auto font-mono text-[9.5px] text-dim flex-shrink-0" data-ts="${d.detectedAt}">${timeAgo(d.detectedAt)}</span></div>
+        <h3 class="deal-title" title="${d.title}">${d.title}</h3>
+        <div class="price-row"><span class="price-now">${INR(d.currentPrice)}</span><span class="price-was">${INR(d.prevPrice)}</span><span class="price-off">${d.discount}% OFF</span></div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between mt-3 gap-2">
+      ${scoreRing(d.dealScore)}
+      <span class="avail ${ac}"><i></i>${d.availability}</span>
+      <a href="${buyUrl(d)}" target="_blank" rel="noopener" class="buy-btn ${d.platform}">BUY · ${d.platform==='amazon'?'AMZ':'FLIP'} ${I.arrow}</a>
+    </div>
+    <div class="mt-2.5 pt-2 border-t border-line/60">${sparkline(d.history)}
+      <div class="flex justify-between font-mono text-[8.5px] text-dim mt-1"><span>30D HIGH ${INR(Math.max(...d.history))}</span><span>LOW ${INR(Math.min(...d.history))}</span></div>
+    </div>
+  </article>`;
+}
+function skeletonCards(n){
+  let h='';
+  for(let i=0;i<n;i++) h+=`<div class="card p-4"><div class="flex gap-3"><div class="skel" style="width:76px;height:76px;border-radius:10px"></div><div class="flex-1 space-y-2.5"><div class="skel h-3 w-20"></div><div class="skel h-3.5 w-full"></div><div class="skel h-5 w-28"></div></div></div><div class="flex justify-between mt-4"><div class="skel h-11 w-11 rounded-full"></div><div class="skel h-8 w-24 rounded-lg"></div></div><div class="skel h-8 w-full mt-3"></div></div>`;
+  return h;
+}
+function withSkeleton(container, renderFn, n=6){
+  container.innerHTML = skeletonCards(n);
+  setTimeout(renderFn, 550);
+}
+
+/* ================= KPIs ================= */
+function animateCount(el, end, formatter){
+  const start = 0, dur = 900, t0 = performance.now();
+  function step(t){
+    const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+    el.textContent = formatter(start+(end-start)*e);
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function updateKPIs(){
+  const ultra = state.deals.filter(d=>d.dealScore>=90).length;
+  const under99 = state.deals.filter(d=>d.currentPrice<99).length;
+  const bigDrop = [...state.deals].sort((a,b)=>(b.prevPrice-b.currentPrice)-(a.prevPrice-a.currentPrice))[0];
+  const dropVal = bigDrop ? bigDrop.prevPrice-bigDrop.currentPrice : 0;
+  const kpis=[
+    {label:'ULTRA DEALS', val:ultra, f:v=>Math.round(v), sub:I.zap+' score ≥ 90 · live', c:'#00e676'},
+    {label:'DEALS UNDER ₹99', val:under99, f:v=>Math.round(v), sub:I.tag+' micro-deal zone', c:'#22d3ee'},
+    {label:'BIGGEST PRICE DROP', val:dropVal, f:v=>INR(v), sub:I.drop+trunc(bigDrop?bigDrop.title:'—',26), c:'#fbbf24'},
+    {label:'DEALS DETECTED TODAY', val:state.stats.detectedToday, f:v=>fmt(v), sub:I.radar+'+'+state.stats.lastHour+' in last hour', c:'#a3e635'},
+    {label:'TELEGRAM ALERTS', val:state.stats.alertsSent, f:v=>fmt(v), sub:I.plane+'via @AIDealHunterBot', c:'#3b82f6'}
+  ];
+  $('#kpiRow').innerHTML = kpis.map((k,i)=>`<div class="card card-hover kpi" style="--kc:${k.c}">
+    <div class="kpi-label" style="color:${k.c}">${k.label}</div>
+    <div class="kpi-val" id="kpi${i}">0</div>
+    <div class="kpi-sub flex items-center gap-1.5">${k.sub}</div></div>`).join('');
+  kpis.forEach((k,i)=>animateCount($('#kpi'+i), k.val, k.f));
+  $('#navDealCount').textContent = state.deals.length;
+}
+
+/* ================= FEEDS ================= */
+function renderOverviewFeed(){
+  const list = [...state.deals].sort((a,b)=>b.detectedAt-a.detectedAt).slice(0,8);
+  $('#overviewFeed').innerHTML = list.map(dealCard).join('');
+  $('#feedCount').textContent = '· '+state.deals.length+' tracked';
+}
+function renderTicker(){
+  const items=[...state.deals].sort((a,b)=>b.dealScore-a.dealScore).slice(0,12);
+  const html=items.map(d=>`<span class="tick-item"><b style="color:${scoreMeta(d.dealScore).color}">${INR(d.currentPrice)}</b>${trunc(d.title,34)}<em class="tick-off">−${d.discount}%</em><span class="tick-plat ${d.platform}">${d.platform==='amazon'?'AMZ':'FLIP'}</span></span>`).join('<span class="tick-sep">◆</span>');
+  $('#tickerTrack').innerHTML=`<div class="tick-half">${html}</div><div class="tick-half">${html}</div>`;
+}
+const ACT_POOL=[
+  ()=>`Scanner sweep completed · ${fmt(randi(38000,52000))} products analyzed`,
+  ()=>`Flipkart API latency ${randi(420,880)}ms · degraded mode`,
+  ()=>`Amazon API latency ${randi(110,290)}ms · OK`,
+  ()=>`Price history DB synced · ${fmt(randi(2100,5400))} rows written`,
+  ()=>`Keyword filter matched: "${pick(state.telegram.keywords)}"`,
+  ()=>`Alert dispatcher heartbeat · OK`,
+  ()=>`New product added to tracking · ${pick(POOL).t}`,
+  ()=>`Amazon sweep found ${randi(3,14)} price drops`,
+  ()=>`Flipkart sweep found ${randi(2,9)} price drops`,
+  ()=>`Deal score recalculated for ${randi(40,300)} items`
+];
+function logActivity(msg, color){
+  state.activity.unshift({ts:Date.now(), msg, color:color||'#8b9bb4'});
+  if(state.activity.length>30) state.activity.pop();
+  renderActivity();
+}
+function renderActivity(){
+  $('#activityLog').innerHTML = state.activity.map(a=>`<div class="act-item">
+    <span class="t">${new Date(a.ts).toLocaleTimeString('en-IN',{hour12:false})}</span>
+    <span class="w-1 rounded-full flex-shrink-0" style="background:${a.color}"></span>
+    <span class="text-slate-300 leading-snug">${a.msg}</span></div>`).join('');
+}
+
+/* ================= ROUTER ================= */
+const PAGES=['overview','livedeals','amazon','flipkart','history','telegram','settings','system'];
+function navigate(page){
+  if(!PAGES.includes(page)) page='overview';
+  state.route=page;
+  $$('.page').forEach(p=>p.classList.add('hidden'));
+  const el=$('#page-'+page); el.classList.remove('hidden');
+  $$('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.nav===page));
+  closeSidebar(); window.scrollTo({top:0,behavior:'smooth'});
+  pageInit(page);
+}
+function pageInit(page){
+  if(page==='overview' && !state.visited.overview){ state.visited.overview=true; withSkeleton($('#overviewFeed'), renderOverviewFeed, 6); initOverviewCharts(); }
+  if(page==='livedeals' && !state.visited.livedeals){ state.visited.livedeals=true; withSkeleton($('#dealGrid'), applyFilters, 6); }
+  else if(page==='livedeals') applyFilters();
+  if(page==='amazon' && !state.visited.amazon){ state.visited.amazon=true; $('#amazonGrid').innerHTML=skeletonCards(6); setTimeout(()=>renderPlatform('amazon'),550); }
+  else if(page==='amazon') renderPlatform('amazon');
+  if(page==='flipkart' && !state.visited.flipkart){ state.visited.flipkart=true; $('#flipkartGrid').innerHTML=skeletonCards(6); setTimeout(()=>renderPlatform('flipkart'),550); }
+  else if(page==='flipkart') renderPlatform('flipkart');
+  if(page==='history') initHistoryPage();
+  if(page==='telegram') renderTelegram();
+  if(page==='system') renderSystem();
+}
+function closeSidebar(){ $('#sidebar').classList.add('-translate-x-full'); $('#backdrop').classList.add('hidden'); }
+
+/* ================= FILTERS / LIVE DEALS ================= */
+function populateCats(){
+  const cats=[...new Set(state.deals.map(d=>d.cat))].sort();
+  $('#fCat').innerHTML='<option value="all">All Categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+}
+function applyFilters(){
+  const f=state.filters;
+  let list=[...state.deals];
+  if(f.platform!=='all') list=list.filter(d=>d.platform===f.platform);
+  if(f.cat!=='all') list=list.filter(d=>d.cat===f.cat);
+  if(f.minScore>0) list=list.filter(d=>d.dealScore>=f.minScore);
+  if(f.q){ const q=f.q.toLowerCase(); list=list.filter(d=>(d.title+' '+d.brand+' '+d.cat).toLowerCase().includes(q)); }
+  switch(f.sort){
+    case 'discount': list.sort((a,b)=>b.discount-a.discount); break;
+    case 'score': list.sort((a,b)=>b.dealScore-a.dealScore); break;
+    case 'priceAsc': list.sort((a,b)=>a.currentPrice-b.currentPrice); break;
+    case 'priceDesc': list.sort((a,b)=>b.currentPrice-a.currentPrice); break;
+    default: list.sort((a,b)=>b.detectedAt-a.detectedAt);
+  }
+  $('#dealCount').textContent='· '+list.length+' result'+(list.length===1?'':'s');
+  if(list.length===0){ $('#dealGrid').innerHTML=''; $('#dealEmpty').classList.remove('hidden'); }
+  else { $('#dealEmpty').classList.add('hidden'); $('#dealGrid').innerHTML=list.map(dealCard).join(''); }
+}
+function resetFilters(){
+  state.filters={platform:'all',cat:'all',minScore:0,sort:'newest',q:''};
+  $('#fSearch').value=''; $('#fCat').value='all'; $('#fSort').value='newest';
+  $('#fScore').value=0; $('#fScoreVal').textContent='0';
+  $$('#fPlatform .pill').forEach(p=>p.classList.toggle('active',p.dataset.p==='all'));
+  applyFilters();
+}
+
+/* ================= PLATFORM PAGES ================= */
+function platformStats(elId, platform){
+  const list=state.deals.filter(d=>d.platform===platform);
+  const ultra=list.filter(d=>d.dealScore>=90).length;
+  const avg=list.length?Math.round(list.reduce((s,d)=>s+d.discount,0)/list.length):0;
+  const drops=list.reduce((s,d)=>s+(d.prevPrice-d.currentPrice),0);
+  const data=[
+    {l:'TRACKED DEALS', v:list.length, c:'#f1f5f9'},
+    {l:'ULTRA DEALS', v:ultra, c:'#00e676'},
+    {l:'AVG DISCOUNT', v:avg+'%', c:'#fbbf24'},
+    {l:'TOTAL SAVINGS', v:INR(drops), c:'#22d3ee'}
+  ];
+  $(elId).innerHTML=data.map(k=>`<div class="card kpi" style="--kc:${k.c}"><div class="kpi-label" style="color:${k.c}">${k.l}</div><div class="kpi-val">${k.v}</div></div>`).join('');
+}
+function renderPlatform(platform){
+  const list=state.deals.filter(d=>d.platform===platform).sort((a,b)=>b.detectedAt-a.detectedAt);
+  platformStats(platform==='amazon'?'#amzStats':'#flipStats', platform);
+  $(platform==='amazon'?'#amazonGrid':'#flipkartGrid').innerHTML=list.map(dealCard).join('');
+}
+
+/* ================= CHARTS ================= */
+function chartDefaults(){
+  if(!window.Chart) return false;
+  Chart.defaults.color='#8b9bb4';
+  Chart.defaults.font.family="'JetBrains Mono', monospace";
+  Chart.defaults.font.size=10;
+  Chart.defaults.borderColor='rgba(148,163,184,.08)';
+  return true;
+}
+function initOverviewCharts(){
+  if(!chartDefaults()) return;
+  const sCtx=$('#chartSplit').getContext('2d');
+  const amz=state.deals.filter(d=>d.platform==='amazon').length;
+  const flip=state.deals.length-amz;
+  state.charts.split=new Chart(sCtx,{type:'doughnut',
+    data:{labels:['Amazon','Flipkart'],datasets:[{data:[amz,flip],backgroundColor:['#ff9900','#3b82f6'],borderColor:'#070b12',borderWidth:4,hoverOffset:6}]},
+    options:{cutout:'72%',plugins:{legend:{position:'bottom',labels:{boxWidth:9,boxHeight:9,padding:14,usePointStyle:true}}}}});
+  const hCtx=$('#chartHour').getContext('2d');
+  state.charts.hour=new Chart(hCtx,{type:'bar',
+    data:{labels:state.hourData.map((_,i)=>i===11?'now':'-'+(11-i)+'h'),
+      datasets:[{data:state.hourData,backgroundColor:state.hourData.map((_,i)=>i===11?'#00e676':'rgba(0,230,118,.28)'),borderRadius:4,barPercentage:.65}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(148,163,184,.06)'},ticks:{maxTicksLimit:4}}}}});
+}
+function initHistoryPage(){
+  const sel=$('#histProduct');
+  const list=[...state.deals].sort((a,b)=>b.dealScore-a.dealScore);
+  sel.innerHTML=list.map(d=>`<option value="${d.id}">${trunc(d.title,42)} · ${d.platform==='amazon'?'AMZ':'FLIP'}</option>`).join('');
+  sel.onchange=()=>renderHistChart(list.find(d=>d.id===sel.value));
+  renderHistChart(list[0]);
+  const drops=[...state.deals].sort((a,b)=>(b.prevPrice-b.currentPrice)-(a.prevPrice-a.currentPrice)).slice(0,6);
+  $('#topDrops').innerHTML=drops.map(d=>{
+    const drop=d.prevPrice-d.currentPrice, pct=Math.round(drop/d.prevPrice*100), m=scoreMeta(d.dealScore);
+    return `<tr>
+      <td class="max-w-[220px]"><div class="truncate font-medium text-slate-200">${d.title}</div><div class="font-mono text-[9px] text-dim">${d.brand}</div></td>
+      <td>${platBadge(d.platform)}</td>
+      <td class="font-mono text-dim line-through">${INR(d.prevPrice)}</td>
+      <td class="font-mono font-bold text-mint">${INR(d.currentPrice)}</td>
+      <td class="font-mono text-amber font-bold">−${INR(drop)} <span class="text-dim">(${pct}%)</span></td>
+      <td><span class="font-mono font-bold" style="color:${m.color}">${d.dealScore}</span></td>
+      <td class="w-[110px]">${sparkline(d.history)}</td></tr>`;
+  }).join('');
+}
+function renderHistChart(d){
+  if(!d) return;
+  if(!chartDefaults()) return;
+  if(state.charts.hist) state.charts.hist.destroy();
+  const ctx=$('#histChart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,320);
+  grad.addColorStop(0,'rgba(0,230,118,.28)'); grad.addColorStop(1,'rgba(0,230,118,0)');
+  const labels=d.history.map((_,i)=>{ const da=d.history.length-1-i; return da===0?'now':'-'+da+'d'; });
+  state.charts.hist=new Chart(ctx,{type:'line',
+    data:{labels,datasets:[
+      {label:'Tracked Price',data:d.history,borderColor:'#00e676',backgroundColor:grad,fill:true,tension:.35,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#00e676',borderWidth:2},
+      {label:'MRP',data:Array(d.history.length).fill(d.mrp),borderColor:'rgba(248,113,113,.55)',borderDash:[6,6],pointRadius:0,borderWidth:1.2}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',align:'end',labels:{boxWidth:9,boxHeight:9,usePointStyle:true}},
+        tooltip:{backgroundColor:'#0e1727',borderColor:'rgba(148,163,184,.2)',borderWidth:1,titleFont:{size:10},bodyFont:{size:11},padding:10,
+          callbacks:{label:c=>' '+c.dataset.label+': '+INR(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{grid:{color:'rgba(148,163,184,.06)'},ticks:{callback:v=>'₹'+fmt(v)}}}}});
+  const atl=Math.min(...d.history), avg=Math.round(d.history.reduce((a,b)=>a+b,0)/d.history.length);
+  $('#hCur').textContent=INR(d.currentPrice);
+  $('#hAtl').textContent=INR(atl);
+  $('#hAvg').textContent=INR(avg);
+  $('#hSave').textContent=INR(d.mrp-d.currentPrice)+' ('+Math.round((1-d.currentPrice/d.mrp)*100)+'%)';
+}
+
+/* ================= TELEGRAM ================= */
+function renderTelegram(){
+  $('#tgDot').className='dot '+(state.telegram.connected?'ok pulse':'bad');
+  $('#tgStatus').textContent=state.telegram.connected?'CONNECTED':'DISCONNECTED';
+  $('#tgStatus').style.color=state.telegram.connected?'#00e676':'#f87171';
+  $('#tgKeywords').innerHTML=state.telegram.keywords.map(k=>`<span class="chip-kw">${k}<button data-kw="${k}">✕</button></span>`).join('')||'<span class="font-mono text-[10px] text-dim">No keywords tracked</span>';
+  $$('#tgKeywords button').forEach(b=>b.onclick=()=>{ state.telegram.keywords=state.telegram.keywords.filter(k=>k!==b.dataset.kw); renderTelegram(); });
+  renderAlertLog();
+}
+function renderAlertLog(){
+  $('#alertCountLbl').textContent='· '+state.alerts.length+' entries';
+  if(!state.alerts.length){
+    $('#alertLog').innerHTML=`<div class="text-center py-10"><svg class="mx-auto empty-ill" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg><div class="font-mono text-[10px] text-dim mt-3 tracking-widest">NO ALERTS DISPATCHED YET</div></div>`;
+    return;
+  }
+  $('#alertLog').innerHTML=state.alerts.map(a=>`<div class="act-item">
+    <span class="t">${new Date(a.ts).toLocaleTimeString('en-IN',{hour12:false})}</span>
+    <span class="dot ok flex-shrink-0 mt-1.5"></span>
+    <div class="min-w-0"><div class="text-slate-200 leading-snug">${a.text}</div>
+    <div class="font-mono text-[8.5px] text-dim mt-0.5 tracking-wider">DELIVERED · ${a.platform.toUpperCase()} API · ${randi(90,240)}ms</div></div></div>`).join('');
+}
+function sendTelegramAlert(d, test){
+  state.stats.alertsSent++;
+  const text=(test?'TEST ALERT · ':'')+`ULTRA DEAL ${d.dealScore} · ${d.title} — ${INR(d.currentPrice)} (${d.discount}% OFF) was ${INR(d.prevPrice)}`;
+  state.alerts.unshift({ts:Date.now(), text, platform:d.platform, deal:d});
+  if(state.alerts.length>25) state.alerts.pop();
+  state.stats.bell++;
+  const bb=$('#bellBadge'); bb.textContent=state.stats.bell; bb.classList.remove('hidden');
+  $('#navAlertCount').textContent=state.stats.alertsSent;
+  $('#tgLast').textContent='just now';
+  logActivity(`Telegram alert dispatched · ${trunc(d.title,30)} @ ${INR(d.currentPrice)}`,'#3b82f6');
+  renderAlertLog(); updateKPIs();
+}
+function toast(o){
+  const t=document.createElement('div');
+  t.className='toast toast-'+(o.type||'info');
+  t.innerHTML=`<div class="flex items-start gap-3">
+    <span class="mt-0.5 flex-shrink-0" style="color:${o.type==='ultra'?'#00e676':o.type==='error'?'#f87171':'#22d3ee'}">${o.type==='ultra'?I.zap:o.type==='error'?I.drop:I.plane}</span>
+    <div class="min-w-0"><div class="font-bold text-[12.5px] text-slate-100">${o.title}</div>
+    <div class="text-[11.5px] text-mute mt-0.5 leading-snug">${o.msg}</div></div></div>`;
+  $('#toasts').appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),450); }, 5400);
+}
+
+/* ================= SETTINGS / SYSTEM ================= */
+function renderSettingsCats(){
+  const cats=[...new Set(POOL.map(p=>p.c))].sort();
+  $('#setCats').innerHTML=cats.map((c,i)=>`<button class="pill ${i<5?'active':''}" data-cat="${c}">${c.toUpperCase()}</button>`).join('');
+  $$('#setCats .pill').forEach(p=>p.onclick=()=>p.classList.toggle('active'));
+}
+function renderSystem(){
+  $('#sysComponents').innerHTML=state.components.map(c=>{
+    const st=c.st==='operational'?['ok','OPERATIONAL','#00e676']:c.st==='degraded'?['warn','DEGRADED','#fbbf24']:['bad','OFFLINE','#f87171'];
+    return `<div class="comp-row">
+      <span class="dot ${st[0]} ${c.st==='operational'?'pulse':''}" style="color:${st[2]}"></span>
+      <div class="flex-1 min-w-0"><div class="text-[12.5px] font-medium text-slate-200">${c.name}</div>
+      <div class="font-mono text-[9px] text-dim mt-0.5 tracking-wider">${c.st==='degraded'?'ELEVATED LATENCY · RETRY LOGIC ACTIVE':'RESPONSE NOMINAL'}</div></div>
+      <span class="font-mono text-[10px] font-bold" style="color:${st[2]}" data-lat>${c.lat()}</span>
+      <span class="font-mono text-[8.5px] tracking-widest px-2 py-1 rounded" style="color:${st[2]};background:${st[2]}14;border:1px solid ${st[2]}40">${st[1]}</span>
+    </div>`;
+  }).join('');
+  const seeds=[
+    ['#00e676','Scanner core initialized · 2 platform workers online'],
+    ['#3b82f6','Telegram bot handshake OK · chat UltraDealAlerts'],
+    ['#fbbf24','Flipkart API latency warning · failover proxy engaged'],
+    ['#00e676','Price history DB vacuumed · 1.2M rows indexed'],
+    ['#22d3ee','Keyword watchlist loaded · '+state.telegram.keywords.length+' terms active'],
+    ['#00e676','Ultra deal threshold set to score ≥ 90'],
+    ['#f87171','Amazon captcha challenge bypassed · rotating proxies'],
+    ['#00e676','Alert dispatcher queue flushed · 0 pending']
+  ];
+  state.sysLog=seeds.map((s,i)=>({c:s[0], m:s[1], t:Date.now()-(seeds.length-i)*randi(40,180)*1000}));
+  renderSysLog();
+}
+function renderSysLog(){
+  $('#sysLog').innerHTML=state.sysLog.map(e=>`<div class="flex gap-2.5"><span class="text-dim flex-shrink-0">${new Date(e.t).toLocaleTimeString('en-IN',{hour12:false})}</span><span class="w-1 rounded-full flex-shrink-0" style="background:${e.c}"></span><span class="text-slate-300">${e.m}</span></div>`).join('');
+}
+
+/* ================= SIMULATION ================= */
+function pushNewDeal(){
+  const item=pick(POOL);
+  const ultra=Math.random()<0.22;
+  const d=makeDeal(item,{isNew:true, ultra, ts:Date.now()});
+  state.deals.unshift(d);
+  if(state.deals.length>48) state.deals.pop();
+  state.stats.detectedToday++; state.stats.lastHour++;
+  state.hourData[11]++;
+  logActivity(`New deal detected · ${trunc(d.title,34)} @ ${INR(d.currentPrice)} (−${d.discount}%)`, d.platform==='amazon'?'#ff9900':'#3b82f6');
+  if(d.dealScore>=90){
+    sendTelegramAlert(d,false);
+    toast({type:'ultra', title:'ULTRA DEAL INTERCEPTED', msg:`${d.title} — ${INR(d.currentPrice)} (${d.discount}% OFF) · Score ${d.dealScore}`});
+    if($('#setSound') && $('#setSound').classList.contains('on')){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)(); const o=ac.createOscillator(),g=ac.createGain(); o.connect(g); g.connect(ac.destination); o.frequency.value=880; g.gain.setValueAtTime(.06,ac.currentTime); g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.35); o.start(); o.stop(ac.currentTime+.4);}catch(e){} }
+  }
+  updateKPIs(); renderTicker();
+  if(state.route==='overview') renderOverviewFeed();
+  if(state.route==='livedeals') applyFilters();
+  if(state.route==='amazon'&&d.platform==='amazon') renderPlatform('amazon');
+  if(state.route==='flipkart'&&d.platform==='flipkart') renderPlatform('flipkart');
+  if(state.charts.hour){ state.charts.hour.data.datasets[0].data=state.hourData; state.charts.hour.update('none'); }
+  if(state.charts.split){ const amz=state.deals.filter(x=>x.platform==='amazon').length; state.charts.split.data.datasets[0].data=[amz,state.deals.length-amz]; state.charts.split.update('none'); }
+  setTimeout(()=>{ d.isNew=false; }, 90000);
+}
+function flickerPrice(){
+  const d=pick(state.deals);
+  if(!d) return;
+  const delta=randi(-15,25);
+  if(delta===0) return;
+  d.currentPrice=Math.max(39,d.currentPrice+delta);
+  d.discount=Math.round((1-d.currentPrice/d.mrp)*100);
+  d.history[d.history.length-1]=d.currentPrice;
+  if(state.route==='overview') renderOverviewFeed();
+  if(state.route==='livedeals') applyFilters();
+}
+function tickSecond(){
+  state.stats.uptime++;
+  state.stats.scanned+=randi(40,120);
+  const up=state.stats.uptime, uh=String(Math.floor(up/3600)).padStart(2,'0'), um=String(Math.floor(up/60)%60).padStart(2,'0'), us=String(up%60).padStart(2,'0');
+  const upStr=uh+':'+um+':'+us;
+  $('#clock').textContent=clockNow()+' IST';
+  $('#sideUptime').textContent=upStr;
+  $('#sideScanned').textContent=fmt(state.stats.scanned);
+  $('#sysUptime').textContent=upStr;
+  $('#sysScanned').textContent=fmt(state.stats.scanned);
+  $('#scanAmz').textContent=fmt(randi(800,2400));
+  $('#scanFlip').textContent=fmt(randi(500,1600));
+  if(state.route==='system'){
+    $('#sysRpm').textContent=randi(190,320);
+    $('#sysAlerts').textContent=fmt(state.stats.alertsSent);
+    $('#sysScannedRate').textContent=randi(60,140);
+    $$('#sysComponents [data-lat]').forEach((el,i)=>{ if(state.components[i]) el.textContent=state.components[i].lat(); });
+  }
+}
+function simulate(){
+  setInterval(()=>{ if(Math.random()<0.78) pushNewDeal(); }, 9000);
+  setInterval(flickerPrice, 4200);
+  setInterval(tickSecond, 1000);
+  setInterval(()=>{ logActivity(pick(ACT_POOL)()); }, 7000);
+  setInterval(()=>{ if(Math.random()<0.18){ toast({type:'error', title:'FLIPKART API TIMEOUT', msg:'Sweep request exceeded 4000ms — automatic retry in progress.'}); logActivity('Flipkart API timeout · retry scheduled','#f87171'); } }, 45000);
+  setInterval(()=>{ $$('main [data-ts]').forEach(el=>{ el.textContent=timeAgo(+el.dataset.ts); }); }, 30000);
+}
+
+/* ================= EVENTS ================= */
+function bindEvents(){
+  $$('.nav-item').forEach(n=>n.addEventListener('click',()=>navigate(n.dataset.nav)));
+  $('#menuBtn').onclick=()=>{ $('#sidebar').classList.remove('-translate-x-full'); $('#backdrop').classList.remove('hidden'); };
+  $('#backdrop').onclick=closeSidebar;
+  $('#bellBtn').onclick=()=>{ state.stats.bell=0; $('#bellBadge').classList.add('hidden'); navigate('telegram'); };
+  // filters
+  $$('#fPlatform .pill').forEach(p=>p.onclick=()=>{ $$('#fPlatform .pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); state.filters.platform=p.dataset.p; applyFilters(); });
+  $('#fSearch').addEventListener('input',e=>{ state.filters.q=e.target.value; applyFilters(); });
+  $('#fCat').onchange=e=>{ state.filters.cat=e.target.value; applyFilters(); };
+  $('#fSort').onchange=e=>{ state.filters.sort=e.target.value; applyFilters(); };
+  $('#fScore').addEventListener('input',e=>{ state.filters.minScore=+e.target.value; $('#fScoreVal').textContent=e.target.value; applyFilters(); });
+  $('#fReset').onclick=resetFilters;
+  $('#emptyReset').onclick=resetFilters;
+  // telegram
+  $('#tgScore').addEventListener('input',e=>{ state.telegram.scoreTh=+e.target.value; $('#tgScoreVal').textContent=e.target.value; });
+  $('#tgPrice').addEventListener('input',e=>{ state.telegram.priceTh=+e.target.value||0; });
+  $('#tgRateRange').addEventListener('input',e=>{ state.telegram.rate=+e.target.value; $('#tgRate').textContent=e.target.value; });
+  const tgl=(id,key)=>{ $(id).onclick=()=>{ $(id).classList.toggle('on'); state.telegram[key]=$(id).classList.contains('on'); }; };
+  tgl('#tgUltra','ultraOnly'); tgl('#tgStock','inStockOnly'); tgl('#tgDrops','bigDrops');
+  $('#tgAddKw').onclick=addKw;
+  $('#tgKeywordInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addKw(); });
+  function addKw(){ const v=$('#tgKeywordInput').value.trim().toLowerCase(); if(v && !state.telegram.keywords.includes(v)){ state.telegram.keywords.push(v); $('#tgKeywordInput').value=''; renderTelegram(); toast({type:'info',title:'KEYWORD ADDED',msg:`"${v}" added to watchlist.`}); } }
+  $('#tgTest').onclick=()=>{
+    if(!state.telegram.connected){ toast({type:'error',title:'BOT DISCONNECTED',msg:'Reconnect the bot before sending test alerts.'}); return; }
+    const d=[...state.deals].sort((a,b)=>b.dealScore-a.dealScore)[0];
+    sendTelegramAlert(d,true);
+    toast({type:'info',title:'TEST ALERT SENT',msg:'Message delivered to UltraDealAlerts via @AIDealHunterBot.'});
+  };
+  $('#tgDisconnect').onclick=()=>{
+    state.telegram.connected=!state.telegram.connected;
+    $('#tgDisconnect').textContent=state.telegram.connected?'DISCONNECT':'RECONNECT';
+    renderTelegram();
+    toast({type:state.telegram.connected?'info':'error', title:state.telegram.connected?'BOT RECONNECTED':'BOT DISCONNECTED', msg:state.telegram.connected?'Alert pipeline restored.':'Alerts will be queued and delivered on reconnect.'});
+  };
+  // settings
+  $('#setInterval').addEventListener('input',e=>$('#setIntervalVal').textContent=e.target.value+'s');
+  $('#setMax').addEventListener('input',e=>$('#setMaxVal').textContent=e.target.value);
+  const stgl=(id)=>{ $(id).onclick=()=>$(id).classList.toggle('on'); };
+  stgl('#setUltra'); stgl('#setSound'); stgl('#setRefresh'); stgl('#setCompact');
+  $('#setSave').onclick=()=>toast({type:'info',title:'CONFIGURATION SAVED',msg:'Scanner engine and notification preferences updated.'});
+  $('#setReset').onclick=()=>location.reload();
+}
+
+/* ================= BOOT ================= */
+function boot(){
+  const msgs=['INITIALIZING SCANNER CORE...','CONNECTING AMAZON PRODUCT API...','CONNECTING FLIPKART PRODUCT API...','LINKING TELEGRAM BOT...','LOADING DEAL FEED...','SYSTEM ONLINE'];
+  let i=0;
+  const iv=setInterval(()=>{
+    i++;
+    if(i<msgs.length){ $('#bootText').textContent=msgs[i]; $('#bootBar').style.width=(i/msgs.length*100)+'%'; }
+    else {
+      clearInterval(iv);
+      $('#boot').style.opacity='0';
+      setTimeout(()=>$('#boot').remove(),650);
+      startApp();
+    }
+  },260);
+}
+function startApp(){
+  seedDeals();
+  populateCats();
+  updateKPIs();
+  renderTicker();
+  renderOverviewFeed();
+  logActivity('Scanner core initialized · Amazon + Flipkart workers online','#00e676');
+  logActivity('Telegram bot handshake OK · chat UltraDealAlerts','#3b82f6');
+  logActivity('Flipkart API latency warning · failover proxy engaged','#fbbf24');
+  initOverviewCharts();
+  state.visited.overview=true;
+  renderSettingsCats();
+  bindEvents();
+  simulate();
+  tickSecond();
+  setTimeout(()=>toast({type:'ultra',title:'SCANNER ONLINE',msg:'Monitoring 2 platforms · '+state.deals.length+' deals tracked · ultra threshold ≥ 90.'}),1800);
+}
+boot();
+</script>
+</body>
+</html>
