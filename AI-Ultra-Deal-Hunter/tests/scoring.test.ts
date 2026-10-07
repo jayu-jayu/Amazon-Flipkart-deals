@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";import {scoreDeal} from "../src/scoring";import {shouldAlert} from "../src/dedupe";
+const obs={platform:"amazon" as const,externalId:"x",name:"Test",url:"https://example.com/p",currency:"INR" as const,currentPrice:99,listedPrice:999,availability:"In Stock"};
+describe("scoring",()=>{it("detects drop",()=>expect(scoreDeal(obs,499,450).historyDropPercent).toBeCloseTo(80));it("caps no-history score",()=>expect(scoreDeal(obs).score).toBeLessThanOrEqual(70));});describe("dedupe",()=>{it("alerts without prior alert",()=>expect(shouldAlert(undefined,undefined,99,80)).toBe(true));it("suppresses cooldown",()=>expect(shouldAlert(new Date().toISOString(),100,99,70)).toBe(false));});

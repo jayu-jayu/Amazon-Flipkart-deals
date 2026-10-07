@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, platform TEXT NOT NULL CHECK(platform IN ('amazon','flipkart')), external_id TEXT NOT NULL, name TEXT NOT NULL, url TEXT NOT NULL, image_url TEXT, seller TEXT, currency TEXT NOT NULL DEFAULT 'INR', listed_price REAL, current_price REAL, availability TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(platform, external_id));
+CREATE TABLE IF NOT EXISTS price_observations (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT NOT NULL, price REAL NOT NULL, listed_price REAL, availability TEXT, observed_at TEXT NOT NULL, FOREIGN KEY(product_id) REFERENCES products(id));
+CREATE INDEX IF NOT EXISTS idx_price_product_time ON price_observations(product_id, observed_at DESC);
+CREATE TABLE IF NOT EXISTS deal_alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT NOT NULL, price REAL NOT NULL, score REAL NOT NULL, reason TEXT NOT NULL, sent_at TEXT NOT NULL, FOREIGN KEY(product_id) REFERENCES products(id));
+CREATE INDEX IF NOT EXISTS idx_alert_product_time ON deal_alerts(product_id, sent_at DESC);
+CREATE TABLE IF NOT EXISTS scan_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, products_seen INTEGER NOT NULL DEFAULT 0, deals_found INTEGER NOT NULL DEFAULT 0, error TEXT);
