@@ -14,26 +14,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Move project to repository root
+      - name: Move project files to repository root
         run: |
           set -euo pipefail
 
           test -d "AI-Ultra-Deal-Hunter"
           test -f "AI-Ultra-Deal-Hunter/package.json"
 
-          cp -a "AI-Ultra-Deal-Hunter/." .
+          # Move everything except the nested .github folder.
+          find "AI-Ultra-Deal-Hunter" -mindepth 1 -maxdepth 1 ! -name ".github" -exec cp -a {} . \;
 
+          # Remove the old project folder.
           rm -rf "AI-Ultra-Deal-Hunter"
 
           git add -A
 
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "No changes to commit."
             exit 0
           fi
 
           git config user.name "ai-ultra-deal-hunter-bot"
           git config user.email "ai-ultra-deal-hunter-bot@users.noreply.github.com"
 
-          git commit -m "Move AI Ultra Deal Hunter to repository root"
+          git commit -m "Move AI Ultra Deal Hunter project to root"
           git push
