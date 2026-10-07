@@ -1,0 +1,39 @@
+name: Flatten AI Ultra Deal Hunter
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  flatten:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Move project to repository root
+        run: |
+          set -euo pipefail
+
+          test -d "AI-Ultra-Deal-Hunter"
+          test -f "AI-Ultra-Deal-Hunter/package.json"
+
+          cp -a "AI-Ultra-Deal-Hunter/." .
+
+          rm -rf "AI-Ultra-Deal-Hunter"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git config user.name "ai-ultra-deal-hunter-bot"
+          git config user.email "ai-ultra-deal-hunter-bot@users.noreply.github.com"
+
+          git commit -m "Move AI Ultra Deal Hunter to repository root"
+          git push
